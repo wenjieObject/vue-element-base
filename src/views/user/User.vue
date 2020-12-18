@@ -1,6 +1,6 @@
 <template>
     <div>
-Home
+USER
     </div>
 </template>
 

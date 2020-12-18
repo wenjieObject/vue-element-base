@@ -1,6 +1,6 @@
 <template>
     <div>
-Home
+PAGE1
     </div>
 </template>
 
