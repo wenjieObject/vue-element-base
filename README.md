@@ -1758,3 +1758,329 @@ npm install axios --save
 
 
 
+
+
+## 8.封装echart
+
+
+
+```
+ npm install echarts -S
+```
+
+降低到4.9版本重新启动
+
+在main.js引入echarts
+
+```js
+import Vue from 'vue'
+import App from './App.vue'
+import router from './router'
+import store from './store'
+import '@/assets/scss/reset.scss'
+
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
+import echarts from 'echarts'
+
+Vue.prototype.$echarts = echarts
+
+Vue.config.productionTip = false
+
+Vue.use(ElementUI)
+
+new Vue({
+  router,
+  store,
+  render: h => h(App)
+}).$mount('#app')
+
+```
+
+
+
+components下新增文件CommonChart.vue
+
+```vue
+<template>
+  <div style="height: 100%" ref="chartdiv"></div>
+</template>
+
+<script>
+export default {
+  props: {
+    chartData: {
+      type: Object,
+      default() {
+        return {
+          //横坐标参数
+          xAxis: [],
+          //表格数据
+          series: [],
+          legendData: [],
+        };
+      },
+    },
+    //是否含有坐标轴
+    isAxisChart: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  computed: {
+    option() {
+      return this.isAxisChart ? this.axisOption : this.normalOption;
+    },
+  },
+  data() {
+    return {
+      axisOption: {
+        tooltip: {
+          trigger: "axis",
+          axisPointer: {
+            type: "shadow",
+          },
+        },
+        legend: {
+          data: [],
+        },
+        xAxis: [],
+        yAxis: [
+          {
+            type: "value",
+          },
+        ],
+        series: [],
+      },
+      normalOption: {
+        tooltip: {
+          trigger: "item",
+          formatter: "{a} <br/>{b}: {c} ({d}%)",
+        },
+        legend: {
+          data: [],
+        },
+        series: [],
+      },
+    };
+  },
+  watch: {
+    //表格数据发生变化后重新渲染
+    chartData: {
+      handler: function () {
+        this.initChart();
+      },
+      deep: true,
+    },
+  },
+  methods: {
+    initChart() {
+      let chart = this.$refs.chartdiv;
+      if (chart) {
+        const myChart = this.$echarts.init(chart);
+        this.initChartData();
+        myChart.setOption(this.option);
+        window.addEventListener("resize", function () {
+          myChart.resize();
+        });
+        this.$on("hook:destroyed", () => {
+          window.removeEventListener("resize", function () {
+            myChart.resize();
+          });
+        });
+      }
+    },
+    initChartData() {
+      if (this.isAxisChart) {
+        this.axisOption.xAxis = this.chartData.xAxis;
+        this.axisOption.series = this.chartData.series;
+        this.axisOption.legend.data = this.chartData.legendData;
+      } else {
+        this.normalOption.series = this.chartData.series;
+        this.normalOption.legend.data = this.chartData.legendData;
+      }
+    },
+  },
+  mounted() {
+    this.initChart();
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+</style>
+```
+
+
+
+在home.vue中使用,传入数据和参数
+
+```vue
+<template>
+  <div style="height: 100%">
+    <common-chart :chartData="chartData" :isAxisChart="true"></common-chart>
+    <common-chart
+      :chartData="normalChartData"
+      :isAxisChart="false"
+    ></common-chart>
+  </div>
+</template>
+
+<script>
+import CommonChart from "../components/CommonChart";
+export default {
+  components: {
+    CommonChart,
+  },
+  data() {
+    return {
+      chartData: {
+        xAxis: [
+          {
+            type: "category",
+            axisTick: { show: false },
+            data: ["2012", "2013", "2014", "2015", "2016"],
+          },
+        ],
+        series: [
+          {
+            name: "Forest",
+            type: "bar",
+            barGap: 0,
+            data: [320, 332, 301, 334, 390],
+          },
+          {
+            name: "Steppe",
+            type: "bar",
+            data: [220, 182, 191, 234, 290],
+          },
+          {
+            name: "Desert",
+            type: "bar",
+            data: [150, 232, 201, 154, 190],
+          },
+          {
+            name: "Wetland",
+            type: "bar",
+            data: [98, 77, 101, 99, 40],
+          },
+        ],
+        legendData: ["Forest", "Steppe", "Desert", "Wetland"],
+      },
+      normalChartData: {
+        legendData: [
+          "直接访问",
+          "邮件营销",
+          "联盟广告",
+          "视频广告",
+          "搜索引擎",
+        ],
+        series: [
+          {
+            name: "访问来源",
+            type: "pie",
+            radius: ["50%", "70%"],
+            avoidLabelOverlap: false,
+            label: {
+              show: false,
+              position: "center",
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: "30",
+                fontWeight: "bold",
+              },
+            },
+            labelLine: {
+              show: false,
+            },
+            data: [
+              { value: 335, name: "直接访问" },
+              { value: 310, name: "邮件营销" },
+              { value: 234, name: "联盟广告" },
+              { value: 135, name: "视频广告" },
+              { value: 1548, name: "搜索引擎" },
+            ],
+          },
+        ],
+      },
+    };
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+</style>
+```
+
+
+
+### 8.1.自适应页面大小
+
+浏览器大小变化
+
+```vue
+        window.addEventListener("resize", function () {
+          myChart.resize();
+        });
+        this.$on("hook:destroyed", () => {
+          window.removeEventListener("resize", function () {
+            myChart.resize();
+          });
+        });
+```
+
+菜单伸缩
+
+在computed 获取isCollapse
+
+```vue
+    isCollapse(){
+        return this.$store.state.tab.isCollapse
+    }
+```
+
+在watch下面 见识isCollapse，发生改变时自适应
+
+```vue
+  watch: {
+    //表格数据发生变化后重新渲染
+    chartData: {
+      handler: function () {
+        this.initChart();
+      },
+      deep: true,
+    },
+    //菜单伸缩后重新渲染
+    isCollapse() {
+      setTimeout(() => {
+          this.resizeChart()
+      }, 300);
+      
+    },
+  },
+```
+
+
+
+
+
+
+
+## 9.表单Form封装
+
+
+
+
+
+
+
+## 10.表格Table封装
+
+
+
+
+
+## 11.权限控制
+
