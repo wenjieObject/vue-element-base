@@ -2072,6 +2072,151 @@ export default {
 
 
 
+### 9.1.slot插槽的使用
+
+父组件中引入子组件 `common-form`
+
+```vue
+  <common-form :inline="true" :formLable="formLable" :formModel="formModel">
+    <!-- 子组件插槽，下面这个按钮会替换子组件中的slot -->
+    <el-button slot="search" type="primary" @click="onSubmit">查询</el-button>
+  </common-form>
+```
+
+子组件, <slot name="search"></slot> 这句代码会被 <el-button slot="search" type="primary" @click="onSubmit">查询</el-button> 替换掉
+
+```vue
+    <el-form-item>
+      <slot name="search"></slot>
+    </el-form-item>
+```
+
+
+
+### 9.2.表单封装
+
+
+
+CommonForm  封装
+
+```vue
+<template>
+  <el-form :inline="inline" :model="formModel">
+    <el-form-item
+      :label="item.label"
+      v-for="item in formProp"
+      :key="item.model"
+    >
+      <el-input
+        v-if="item.type === 'input'"
+        v-model="formModel[item.model]"
+        :placeholder="'请输入' + item.label"
+      ></el-input>
+      <el-select v-if="item.type === 'select'" v-model="formModel[item.model]">
+        <el-option
+          :key="subItem.value"
+          v-for="subItem in item.options"
+          :label="subItem.label"
+          :value="subItem.value"
+        ></el-option>
+      </el-select>
+    </el-form-item>
+
+    <el-form-item>
+      <slot name="search"></slot>
+    </el-form-item>
+  </el-form>
+</template>
+
+<script>
+export default {
+  props: {
+    inline: {
+      type: Boolean,
+      default: true,
+    },
+    //绑定的表单数据
+    formModel: {
+      type: Object,
+      default: {},
+    },
+    //绑定的表单属性
+    formProp: Array,
+  },
+  data() {
+    return {};
+  },
+  methods: {},
+};
+</script>
+
+<style lang="scss" scoped>
+</style>
+```
+
+
+
+在页面中使用封装的表单组件
+
+
+
+```vue
+<template>
+  <common-form :inline="true" :formProp="formProp" :formModel="formModel">
+    <!-- 子组件插槽，下面这个按钮会替换子组件中的slot -->
+    <el-button slot="search" type="primary" @click="onSubmit">查询</el-button>
+  </common-form>
+</template>
+
+<script>
+import CommonForm from "../../components/CommonForm";
+export default {
+  components: {
+    CommonForm,
+  },
+  data() {
+    return {
+      formProp: [
+        {
+          model: "keyword",
+          label: "用户名",
+          type: "input",
+        },
+        {
+          model: "password",
+          label: "密码",
+          type: "input",
+        },
+        {
+          model: "sex",
+          label: "性别",
+          type: "select",
+          options: [
+            { label: "男", value: 1 },
+            { label: "女", value: 0 },
+          ],
+        },
+      ],
+      formModel: {
+        keyword: "",
+        password: "",
+        sex: 1,
+      },
+    };
+  },
+  methods: {
+    onSubmit() {
+      console.log(this.formModel);
+    },
+  },
+};
+</script>
+
+
+<style lang="scss" scoped>
+</style>
+```
+
 
 
 
@@ -2080,7 +2225,260 @@ export default {
 
 
 
+父组件需要给表格组件传入，表格属性（列名、列展示名、列宽、列样式等），表格数据，分页的时候需要传入，当前页，总数量
+
+
+
+- 表格大小的问题暂未解决
+
+
+
+分页和编辑，删除等方法，在子组件中触发，在父组件监听后，调用
+
+在子组件的method中触发emit
+
+```vue
+    currentChange(page){
+        this.$emit("currentChange",page)
+    }
+```
+
+在父组件中监听currentChange
+
+```vue
+    <common-table :tableData="tableData" :tableProp="tableProp" :tableConfig="tableConfig" @currentChange="currentChange"></common-table>
+
+
+```
+
+然后在父组件中写处理
+
+```vue
+    currentChange(page){
+        //监听子组件的方法，子组件emit之后调用该方法
+        console.log(page)
+    }
+```
+
+
+
+在表格组件CommonTable.vue
+
+```vue
+<template>
+  <div class="common-table">
+    <el-table :data="tableData"  height="90%" border stripe v-loading="tableConfig.loading">
+      <el-table-column label="序号" width="180">
+        <template slot-scope="scope">
+          <span style="margin-left: 10px">{{ scope.$index + 1 }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        :label="item.label"
+        :width="item.width ? item.width : 180"
+        v-for="item in tableProp"
+        :key="item.prop"
+      >
+        <template slot-scope="scope">
+          <span style="margin-left: 10px">{{ scope.row[item.prop] }}</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="操作">
+        <template slot-scope="scope">
+          <el-button size="mini" @click="handleEdit(scope.$index, scope.row)"
+            >编辑</el-button
+          >
+          <el-button
+            size="mini"
+            type="danger"
+            @click="handleDelete(scope.$index, scope.row)"
+            >删除</el-button
+          >
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <el-pagination
+      layout="prev, pager, next"
+      :total="tableConfig.total"
+      @current-change="currentChange"
+      :current-page.sync="tableConfig.currentPage"
+    >
+    </el-pagination>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    tableData: Array,
+    tableProp: Array,
+    tableConfig: Object,
+  },
+  data() {
+    return {};
+  },
+  methods: {
+    handleEdit(index, row) {
+        this.$emit('handleEdit',row)
+      //console.log(index, row);
+    },
+    handleDelete(index, row) {
+      console.log(index, row);
+    },
+    currentChange(page){
+        this.$emit("currentChange",page)
+    }
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.common-table {
+  height: 520px;
+  position: relative;
+  .el-pagination {
+    position: absolute;
+    bottom: 0;
+    right: 10px;
+  }
+}
+</style>
+```
+
+
+
+在页面中使用表格组件
+
+```vue
+<template>
+  <div>
+    <common-form :inline="true" :formProp="formProp" :formModel="formModel">
+      <!-- 子组件插槽，下面这个按钮会替换子组件中的slot -->
+      <el-button slot="search" type="primary" @click="onSubmit">查询</el-button>
+    </common-form>
+
+    <common-table
+      :tableData="tableData"
+      :tableProp="tableProp"
+      :tableConfig="tableConfig"
+      @currentChange="currentChange"
+      @handleEdit="handleEdit"
+    ></common-table>
+  </div>
+</template>
+
+<script>
+import CommonForm from "../../components/CommonForm";
+import CommonTable from "../../components/CommonTable";
+
+export default {
+  components: {
+    CommonForm,
+    CommonTable,
+  },
+  data() {
+    return {
+      formProp: [
+        {
+          model: "keyword",
+          label: "用户名",
+          type: "input",
+        },
+        {
+          model: "password",
+          label: "密码",
+          type: "input",
+        },
+        {
+          model: "sex",
+          label: "性别",
+          type: "select",
+          options: [
+            { label: "男", value: 1 },
+            { label: "女", value: 0 },
+          ],
+        },
+      ],
+      formModel: {
+        keyword: "",
+        password: "",
+        sex: 1,
+      },
+      tableProp: [
+        {
+          prop: "date",
+          label: "日期",
+          width: 150,
+        },
+        {
+          prop: "name",
+          label: "姓名",
+          width: 120,
+        },
+        {
+          prop: "address",
+          label: "地址",
+          width: 280,
+        },
+      ],
+      tableData: [
+        {
+          date: "2016-05-02",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1518 弄",
+        },
+        {
+          date: "2016-05-04",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1517 弄",
+        },
+        {
+          date: "2016-05-01",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1519 弄",
+        },
+        
+      ],
+      tableConfig: {
+        currentPage: 1,
+        total: 100,
+        loading: false, //控制表格加载
+      },
+    };
+  },
+  methods: {
+    onSubmit() {
+      console.log(this.formModel);
+    },
+    currentChange(page) {
+      //监听子组件的方法，子组件emit之后调用该方法
+      console.log(page);
+    },
+    handleEdit(row){
+        console.log(row)
+    }
+  },
+};
+</script>
+
+
+<style lang="scss" scoped>
+</style>
+```
+
+
+
 
 
 ## 11.权限控制
+
+删除router.index下的路由
+
+删除CommonAside下的路由
+
+登录的时候，从后端获取路由，保存到vuex 的tab.下的menu中，通过动态路由添加上去，
+
+由于页面刷新vuex的数据会丢失，所以token和路由表的数据得保存到cookie中，实例化vue的时候从cookie中获取路由添加到vuex
 
