@@ -44,56 +44,20 @@ import { mapState } from "vuex";
 export default {
   data() {
     return {
-      asideMenus: [
-        {
-          path: "/",
-          label: "首页",
-          name: "home",
-          icon: "el-icon-s-home",
-        },
-        {
-          path: "/video",
-          label: "视频管理",
-          name: "video",
-          icon: "el-icon-video-play",
-        },
-        {
-          path: "/user",
-          label: "人员管理",
-          name: "user",
-          icon: "el-icon-user",
-        },
-        {
-          label: "其他页面",
-          icon: "el-icon-user",
-          children: [
-            {
-              path: "/page1",
-              label: "页面1",
-              name: "page1",
-              icon: "el-icon-delete",
-            },
-            {
-              path: "/page2",
-              label: "页面2",
-              name: "page2",
-              icon: "el-icon-delete-solid",
-            },
-          ],
-        },
-      ],
+     
     };
   },
   computed: {
     ...mapState({
       currentMenu: (state) => state.tab.currentMenu,
       isCollapse: (state) => state.tab.isCollapse,
+      menu:(state) => state.tab.menu,
     }),
     hasChildMenus() {
-      return this.$data.asideMenus.filter((item) => item.children);
+      return this.menu.filter((item) => item.children);
     },
     noChildMenus() {
-      return this.$data.asideMenus.filter((item) => !item.children);
+      return this.menu.filter((item) => !item.children);
     },
   },
   methods: {

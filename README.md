@@ -2482,3 +2482,455 @@ export default {
 
 由于页面刷新vuex的数据会丢失，所以token和路由表的数据得保存到cookie中，实例化vue的时候从cookie中获取路由添加到vuex
 
+
+
+安装js-cookie`npm install js-cookie`
+
+
+
+箭头函数 `item.component = () => import(`@/views/${item.url}`)`  不能在函数体加上{}
+
+这样写不会报错但没有效果
+
+```vue
+ `item.component = () => { import(`@/views/${item.url}`)`}
+```
+
+
+
+删除router index下的路由，仅保留登录页面
+
+```js
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+ 
+
+Vue.use(VueRouter)
+
+const routes = [
+  {
+    path: '/login',
+    component: ()=>import('@/views/Login'),
+    name: 'login'
+  }
+]
+
+const router = new VueRouter({
+   mode: 'history',
+  base: process.env.BASE_URL,
+  routes
+})
+
+export default router
+
+```
+
+
+
+修改CommonAside，路由从vuex中获取
+
+
+
+```vue
+<template>
+  <el-menu
+    class="el-menu-vertical-demo"
+    background-color="#545c64"
+    text-color="#fff"
+    active-text-color="#ffd04b"
+    :collapse="isCollapse"
+  >
+    <el-menu-item
+      :index="item.path"
+      v-for="item in noChildMenus"
+      :key="item.path"
+      @click="clickMenu(item)"
+    >
+      <i :class="item.icon"></i>
+      <span slot="title">{{ item.label }}</span>
+    </el-menu-item>
+
+    <el-submenu
+      :index="index + ''"
+      v-for="(item, index) in hasChildMenus"
+      :key="index"
+    >
+      <template slot="title">
+        <i :class="item.icon"></i>
+        <span>{{ item.label }}</span>
+      </template>
+      <el-menu-item
+        :index="subItem.path"
+        v-for="subItem in item.children"
+        :key="subItem.path"
+        @click="clickMenu(subItem)"
+      >
+        <i :class="subItem.icon"></i>
+        {{ subItem.label }}
+      </el-menu-item>
+    </el-submenu>
+  </el-menu>
+</template>
+
+<script>
+import { mapState } from "vuex";
+
+export default {
+  data() {
+    return {
+     
+    };
+  },
+  computed: {
+    ...mapState({
+      currentMenu: (state) => state.tab.currentMenu,
+      isCollapse: (state) => state.tab.isCollapse,
+      menu:(state) => state.tab.menu,
+    }),
+    hasChildMenus() {
+      return this.menu.filter((item) => item.children);
+    },
+    noChildMenus() {
+      return this.menu.filter((item) => !item.children);
+    },
+  },
+  methods: {
+    clickMenu(item) {
+      this.$router.push({ name: item.name });
+      this.$store.commit("selectMenu", item);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.el-menu {
+  height: 100%;
+  border: none;
+}
+  .el-menu-vertical-demo:not(.el-menu--collapse) {
+    width: 200px;
+    min-height: 400px;
+  }
+</style>
+```
+
+
+
+store下tab修改,新增setMenu，clearMenu，addRouter方法动态添加路由
+
+```js
+
+import Cookie from 'js-cookie'
+
+export default {
+    state: {
+        isCollapse: false,
+        menu: [],
+        currentMenu: null,
+        tabList: [
+            {
+                path: "/home",
+                label: "首页",
+                name: "home",
+                icon: "el-icon-s-home",
+            }
+        ]
+
+    },
+    mutations: {
+        selectMenu(state, val) {
+            if (val.name !== "home") {
+                state.currentMenu = val;
+                let result = state.tabList.findIndex(item => item.name === val.name)
+                result === -1 ? state.tabList.push(val) : ""
+            } else {
+                state.currentMenu = null;
+            }
+        },
+        closeTab(state, val) {
+            let result = state.tabList.findIndex(item => item.name === val.name)
+            state.tabList.splice(result, 1)
+        },
+        collapseMenu(state) {
+            state.isCollapse = !state.isCollapse
+        },
+        setMenu(state, val) {
+            Cookie.set('menu', JSON.stringify(val))
+            state.menu = val
+        },
+        clearMenu(state) {
+            state.menu = [],
+                Cookie.remove('menu')
+        },
+        //动态添加菜单
+        addRouter(state, router) {
+
+            if (!Cookie.get('menu')) return
+            let menu = JSON.parse(Cookie.get('menu'))
+
+            if (!menu) {
+                return
+            }
+            state.menu = menu;
+            let currentRoute = [
+                {
+                    path: '/',
+                    component: () => import('@/views/Main'),
+                    children: []
+                }
+            ]
+            menu.forEach(item => {
+                if (item.children) {
+                    item.children = item.children.map(subItem => {
+                        subItem.component = () => import(`@/views/${subItem.url}`)
+                        return subItem;
+                    })
+                    currentRoute[0].children.push(...item.children)
+                } else {
+                    item.component = () => import(`@/views/${item.url}`)
+                    currentRoute[0].children.push(item)
+                }
+            });
+
+        
+            router.addRoutes(currentRoute)
+
+        }
+
+    },
+    actions: {},
+
+}
+```
+
+
+
+store下新增user,获取设置和清空token
+
+
+
+```js
+import Cookie from 'js-cookie'
+
+
+export default {
+    state: {
+
+        token: null
+
+    },
+    mutations: {
+        getToken(state) {
+            let token = Cookie.get('token')
+            if (token) {
+                state.token = token
+            }
+        },
+        setToken(state,val){
+            state.token=val
+            Cookie.set('token',val)
+        },
+        clearToken(state){
+            state.token=null
+            Cookie.remove("token")
+        }
+
+    },
+    actions: {},
+
+}
+```
+
+
+
+在view下面新增Login
+
+```vue
+<template>
+  <common-form :formModel="formModel" :formProp="formProp" :inline="false">
+    <el-button slot="confirm" type="primary" @click="onSubmit">登录</el-button>
+  </common-form>
+</template>
+
+<script>
+import CommonForm from "@/components/CommonForm";
+
+export default {
+  components: {
+    CommonForm,
+  },
+  data() {
+    return {
+      formModel: {
+        userName: "user",
+        password: "123",
+      },
+      formProp: [
+        {
+          model: "userName",
+          label: "用户名",
+          type: "input",
+        },
+        {
+          model: "password",
+          label: "密码",
+          type: "password",
+        },
+      ],
+    };
+  },
+  methods: {
+    onSubmit() {
+      //登录必须删除之前的菜单
+      this.$store.commit("clearMenu");
+      this.$store.commit("setToken", "虚拟的token");
+      //模拟从后台返回数据
+      if (this.formModel.userName === "admin") {
+        let adminMenus = [
+          {
+            path: "/home",
+            url:"Home",
+            label: "首页",
+            name: "home",
+            icon: "el-icon-s-home",
+          },
+          {
+            path: "/video",
+            url: "video/Video",
+            label: "视频管理",
+            name: "video",
+            icon: "el-icon-video-play",
+          },
+          {
+            path: "/user",
+            url: "user/User",
+            label: "人员管理",
+            name: "user",
+            icon: "el-icon-user",
+          },
+          {
+            label: "其他页面",
+            icon: "el-icon-user",
+            children: [
+              {
+                path: "/page1",
+                url: "other/Page1",
+                label: "页面1",
+                name: "page1",
+                icon: "el-icon-delete",
+              },
+              {
+                path: "/page2",
+                url: "other/Page2",
+                label: "页面2",
+                name: "page2",
+                icon: "el-icon-delete-solid",
+              },
+            ],
+          },
+        ];
+
+        this.$store.commit("setMenu", adminMenus);
+        this.$store.commit("addRouter", this.$router);
+        this.$router.push({ name: "page2" });
+
+      } else if (this.formModel.userName === "user") {
+        let userMenus = [
+          {
+            url: "Home",
+            path: "/home",
+            label: "首页",
+            name: "home",
+            icon: "el-icon-s-home",
+          },
+          {
+            path: "/user",
+            url: "user/User",
+            label: "人员管理",
+            name: "user",
+            icon: "el-icon-user",
+          },
+          {
+            label: "其他页面",
+            icon: "el-icon-user",
+            children: [
+              {
+                path: "/page2",
+                url: "other/Page2",
+                label: "页面2",
+                name: "page2",
+                icon: "el-icon-delete-solid",
+              },
+            ],
+          },
+        ];
+
+        this.$store.commit("setMenu", userMenus);
+        this.$store.commit("addRouter", this.$router);
+        this.$router.push({ name: 'home'});
+
+      } else {
+        this.$message.error("用户名或密码错了哦");
+      }
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.el-form {
+  margin: 0 auto;
+  width: 18rem;
+  padding: 1rem;
+  background-color: white;
+}
+</style>
+```
+
+
+
+在main.js设置路由守卫，如果没有登录，跳转登录页面 `router.beforeEach`
+
+```js
+import Vue from 'vue'
+import App from './App.vue'
+import router from './router'
+import store from './store'
+import '@/assets/scss/reset.scss'
+
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
+import echarts from 'echarts'
+
+Vue.prototype.$echarts = echarts
+
+Vue.config.productionTip = false
+
+Vue.use(ElementUI)
+
+//判断用户是否登录，未登录跳转登录页面
+router.beforeEach((to,from,next)=>{
+
+  //从cookie中获取token
+  store.commit('getToken');
+  let token= store.state.user.token
+  if(!token && to.name !=='login'){
+    next({name:'login'})
+  }else{
+    next()
+  }
+
+})
+
+new Vue({
+  router,
+  store,
+  render: h => h(App),
+  created(){
+     store.commit("addRouter",  router);
+  }
+}).$mount('#app')
+
+```
+

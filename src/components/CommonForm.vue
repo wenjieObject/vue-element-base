@@ -10,6 +10,12 @@
         v-model="formModel[item.model]"
         :placeholder="'请输入' + item.label"
       ></el-input>
+      <el-input
+        v-if="item.type === 'password'"
+        v-model="formModel[item.model]"
+        type="password"
+        :placeholder="'请输入' + item.label"
+      ></el-input>
       <el-select v-if="item.type === 'select'" v-model="formModel[item.model]">
         <el-option
           :key="subItem.value"
@@ -21,7 +27,7 @@
     </el-form-item>
 
     <el-form-item>
-      <slot name="search"></slot>
+      <slot name="confirm"></slot>
     </el-form-item>
   </el-form>
 </template>
