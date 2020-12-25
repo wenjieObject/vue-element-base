@@ -2953,6 +2953,88 @@ new Vue({
 
 
 
+### 11.2.按钮权限控制
+
+
+
+在store的user.js下保存用户按钮的权限
+
+```js
+    state: {
+
+        token: null,
+        permissions:['user.query']
+
+    },
+```
+
+这里仅做示例，permissions要从后端获取，然后要保存到cookie中，因为vuex的数据会在刷新后丢失，刷新后，应该从cookie中重新获取，与token一样
+
+
+
+自定义指令在新建directive下的permission，下的permission.js
+
+```js
+import store from '@/store'
+
+function checkPermission(el, binding) {
+  
+  const { value } = binding
+  const userPermissions = store.state.user.permissions
+
+  if (value) {
+      var a = userPermissions.indexOf(value); // 2
+      //没有权限
+
+      if (a <= -1) {
+        el.parentNode && el.parentNode.removeChild(el)
+      }
+    
+  } else {
+    throw new Error(`need roles! Like v-permission="'admin'"`)
+  }
+}
+
+export default {
+  inserted(el, binding) {
+    checkPermission(el, binding)
+  },
+  update(el, binding) {
+    checkPermission(el, binding)
+  }
+}
+
+
+```
+
+
+
+在main.js中引入自定义指令,全局指令
+
+
+
+```js
+Vue.directive('permission', permission)
+
+```
+
+
+
+在按钮中使用指令
+
+```vue
+      <el-button v-permission="'user.query123'" slot="confirm" type="primary" @click="onSubmit">查询</el-button>
+
+```
+
+
+
+
+
+
+
+
+
 ## 12.激活菜单、切换tab不销毁、刷新重定向home
 
 

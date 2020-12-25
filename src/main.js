@@ -8,11 +8,15 @@ import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import echarts from 'echarts'
 
+import permission from './directive/permission/permission'
+
 Vue.prototype.$echarts = echarts
 
 Vue.config.productionTip = false
 
 Vue.use(ElementUI)
+
+Vue.directive('permission', permission)
 
 //判断用户是否登录，未登录跳转登录页面
 router.beforeEach((to,from,next)=>{

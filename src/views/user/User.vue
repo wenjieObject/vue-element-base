@@ -2,8 +2,9 @@
   <div>
     <common-form :inline="true" :formProp="formProp" :formModel="formModel">
       <!-- 子组件插槽，下面这个按钮会替换子组件中的slot -->
-      <el-button slot="confirm" type="primary" @click="onSubmit">查询</el-button>
+      <el-button v-permission="'user.query'" slot="confirm" type="primary" @click="onSubmit">查询</el-button>
     </common-form>
+      <el-button v-permission="'user.add'"   type="primary" @click="onSubmit">新增</el-button>
 
     <common-table
       :tableData="tableData"

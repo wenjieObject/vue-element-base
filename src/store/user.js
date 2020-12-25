@@ -4,7 +4,8 @@ import Cookie from 'js-cookie'
 export default {
     state: {
 
-        token: null
+        token: null,
+        permissions:['user.query','user.add']
 
     },
     mutations: {
