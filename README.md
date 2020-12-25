@@ -753,6 +753,23 @@ router.beforeEach((to,from,next)=>{
 
 
 
+### 6.2.vue 路由切换时怎么样不销毁组件
+
+
+
+https://segmentfault.com/q/1010000021265774
+
+在router-view标签外套一层keep-alive
+
+```js
+<keep-alive>
+    <router-view>
+    </router-view>
+</keep-alive>
+```
+
+
+
 
 
 ## 1.配置文件vue.config.js
@@ -2934,3 +2951,73 @@ new Vue({
 
 ```
 
+
+
+## 12.激活菜单、切换tab不销毁、刷新重定向home
+
+
+
+- 激活菜单
+
+  在el-menu添加属性
+
+  ```vue
+   <el-menu
+      class="el-menu-vertical-demo"
+      background-color="#545c64"
+      text-color="#fff"
+      active-text-color="#ffd04b"
+      :collapse="isCollapse"
+      :default-active="$route.path"
+    >
+  ```
+
+ 
+
+
+
+  在子菜单中使用该路由地址`:index="item.path"`
+
+```vue
+ <el-menu-item
+      :index="item.path"
+      v-for="item in noChildMenus"
+      :key="item.path"
+      @click="clickMenu(item)"
+    >
+```
+
+
+
+- 切换tab不销毁
+
+  在Main.vue中给router-view标签套一层keep-alive
+
+  ```vue
+        <el-main>
+          <keep-alive>
+            <router-view></router-view>
+          </keep-alive>
+        </el-main>
+  ```
+
+  
+
+- 刷新重定向home
+
+  在main.js中，刷新页面会重新加载vue，调用vue的created钩子函数
+
+  ```js
+  new Vue({
+    router,
+    store,
+    render: h => h(App),
+    created(){
+       store.commit("addRouter",  router);
+       //选中home页
+       router.push({name:"home"})
+    }
+  }).$mount('#app')
+  ```
+
+  

@@ -34,5 +34,7 @@ new Vue({
   render: h => h(App),
   created(){
      store.commit("addRouter",  router);
+     //选中home页
+     router.push({name:"home"})
   }
 }).$mount('#app')

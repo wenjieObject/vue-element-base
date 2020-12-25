@@ -5,6 +5,7 @@
     text-color="#fff"
     active-text-color="#ffd04b"
     :collapse="isCollapse"
+    :default-active="$route.path"
   >
     <el-menu-item
       :index="item.path"
@@ -62,6 +63,8 @@ export default {
   },
   methods: {
     clickMenu(item) {
+      //console.log(this.$route.path)
+      //console.log(item.path)
       this.$router.push({ name: item.name });
       this.$store.commit("selectMenu", item);
     },
